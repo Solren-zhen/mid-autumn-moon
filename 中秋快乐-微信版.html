@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="format-detection" content="telephone=no,email=no,address=no">
+<meta name="theme-color" content="#03050b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>中秋快乐 · 月华</title>
+<meta name="description" content="但愿人长久，千里共婵娟。农历八月十五，愿你所念之人，皆在月下安然。">
+<meta itemprop="name" content="中秋快乐 · 月华">
+<meta itemprop="image" content="poster.png">
+<!-- 部署到 HTTPS 后，把下面两行换成完整地址，微信/QQ 分享卡片更稳定：
+     <meta property="og:image" content="https://你的域名/poster.png"> -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="中秋快乐 · 月华">
+<meta property="og:description" content="但愿人长久，千里共婵娟。">
+<meta property="og:image" content="poster.png">
+<script>try{if('ontouchstart'in window||navigator.maxTouchPoints>0)document.documentElement.className+=' touch';}catch(e){}</script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#03050b;overscroll-behavior:none}
+  body{
+    font-family:"Songti SC","STSong","SimSun","Noto Serif SC","Source Han Serif SC",serif;
+    color:#e9edf8;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;
+  }
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  #fx{pointer-events:none}
+  #thumb{position:absolute;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none}
+
+  main{
+    position:fixed;inset:0;z-index:3;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+    padding:0 6vw 7.5vh;text-align:center;
+  }
+  .touch main{padding-bottom:calc(6vh + 62px + env(safe-area-inset-bottom,0px))}
+  .kicker{
+    font-size:clamp(11px,1.15vw,14px);letter-spacing:.62em;text-indent:.62em;
+    color:#9fb0d4;opacity:0;animation:rise 1.5s .25s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .kicker::before,.kicker::after{content:"";display:inline-block;width:clamp(22px,4vw,58px);height:1px;
+    vertical-align:middle;margin:0 .9em;
+    background:linear-gradient(90deg,transparent,rgba(180,200,240,.65));}
+  .kicker::after{background:linear-gradient(90deg,rgba(180,200,240,.65),transparent)}
+
+  .title{
+    margin:.34em 0 .1em;font-weight:600;
+    font-size:clamp(46px,9.4vw,110px);letter-spacing:.2em;text-indent:.2em;line-height:1.12;
+    background:linear-gradient(100deg,#fff9e8 0%,#ffe6a4 16%,#fffdf6 30%,#f0cc82 46%,
+      #fff4d2 62%,#d6a75c 80%,#fff9e8 100%);
+    background-size:230% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 16px rgba(255,226,164,.34)) drop-shadow(0 0 62px rgba(255,198,120,.20));
+    opacity:0;animation:rise 1.9s .45s cubic-bezier(.2,.7,.2,1) both,sheen 11s 2s linear infinite;
+  }
+  .rule{
+    width:0;height:1px;margin:1.05em 0 1.15em;
+    background:linear-gradient(90deg,transparent,rgba(255,220,160,.55),transparent);
+    animation:draw 1.6s .95s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .poem{
+    font-size:clamp(16px,2.15vw,26px);letter-spacing:.24em;text-indent:.24em;color:#f4ecdb;
+    text-shadow:0 0 22px rgba(255,214,150,.30);opacity:0;
+    animation:rise 1.5s 1.15s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .sub{
+    margin-top:.85em;font-size:clamp(10.5px,1.05vw,13px);letter-spacing:.42em;text-indent:.42em;
+    color:#8b9cbf;opacity:0;animation:rise 1.5s 1.45s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .bless{
+    margin-top:2.1em;font-size:clamp(12.5px,1.32vw,15.5px);line-height:2.15;letter-spacing:.2em;
+    color:#c3cee6;opacity:0;animation:rise 1.7s 1.75s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .bless em{font-style:normal;color:#f7dfa9;text-shadow:0 0 16px rgba(255,210,140,.4)}
+
+  .hud,.hint{
+    position:fixed;bottom:22px;z-index:4;font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;
+    font-size:11px;letter-spacing:.06em;color:rgba(160,180,215,.62);line-height:1.75;
+    opacity:0;animation:fade 1.4s 2.4s ease both;transition:opacity .45s ease;
+  }
+  .hud{left:24px}
+  .hint{right:24px;text-align:right}
+  .hud b{color:rgba(240,220,175,.85);font-weight:600}
+  .hud span{color:rgba(210,180,120,.9)}
+  .hint kbd{
+    font:inherit;padding:1px 5px;border:1px solid rgba(160,180,215,.28);border-radius:4px;
+    background:rgba(160,180,215,.06);color:rgba(210,220,245,.8)
+  }
+  .touch .hud{display:none}
+  .touch .hint{display:none}
+  body.clean .hud,body.clean .hint,body.clean .bar{opacity:0 !important;animation:none;pointer-events:none}
+
+  .bar{
+    position:fixed;left:50%;transform:translateX(-50%);
+    bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:6;
+    display:flex;gap:8px;padding:7px;border-radius:999px;
+    background:rgba(12,16,28,.52);border:1px solid rgba(160,180,215,.18);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+    opacity:0;animation:fade 1.4s 2.2s ease both;transition:opacity .45s ease;
+  }
+  .bar button{
+    appearance:none;border:0;cursor:pointer;font:inherit;font-size:13px;letter-spacing:.12em;
+    color:rgba(226,232,248,.9);background:transparent;padding:9px 16px;border-radius:999px;
+    transition:background .25s ease,color .25s ease;touch-action:manipulation;
+  }
+  .bar button:active{background:rgba(255,220,160,.16);color:#ffe9b8}
+
+  .ovl{
+    position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+    padding:24px;background:rgba(2,4,10,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  }
+  .ovl.on{display:flex;animation:fade .3s ease both}
+  .share-card{
+    max-width:330px;padding:26px 24px 20px;border-radius:18px;text-align:center;
+    background:linear-gradient(180deg,rgba(24,29,44,.96),rgba(12,16,28,.96));
+    border:1px solid rgba(255,220,160,.22);box-shadow:0 24px 60px rgba(0,0,0,.55);
+  }
+  .share-card b{display:block;font-size:19px;letter-spacing:.2em;color:#ffe6a4;margin-bottom:14px}
+  .share-card p{font-size:13.5px;line-height:2;letter-spacing:.08em;color:#c3cee6}
+  .share-card .dots{color:#ffe6a4;font-weight:700}
+  .share-card button,.poster-close{
+    margin-top:18px;appearance:none;border:1px solid rgba(255,220,160,.35);cursor:pointer;
+    background:rgba(255,220,160,.1);color:#ffe6a4;font:inherit;font-size:13px;
+    letter-spacing:.24em;padding:10px 26px;border-radius:999px;
+  }
+  .poster-in{display:flex;flex-direction:column;align-items:center;max-height:100%}
+  .poster-in img{
+    max-width:min(78vw,360px);max-height:66vh;border-radius:12px;display:block;
+    -webkit-touch-callout:default;pointer-events:auto;
+    box-shadow:0 22px 60px rgba(0,0,0,.6);border:1px solid rgba(255,220,160,.2);
+  }
+  .poster-in p{margin-top:14px;font-size:12.5px;letter-spacing:.2em;color:#aebada}
+
+  @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes draw{from{width:0}to{width:min(46vw,420px)}}
+  @keyframes sheen{from{background-position:0% 0}to{background-position:230% 0}}
+
+  .fallback{
+    position:fixed;inset:0;z-index:0;
+    background:
+      radial-gradient(circle at 50% 30%,#f6efdc 0%,#e8dcc0 22%,#8b93a8 23%,#20263c 46%,#070a14 74%),
+      #04060d;
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="fx"></canvas>
+<img id="thumb" src="poster.png" alt="中秋快乐" onerror="this.style.display='none'">
+
+<main>
+  <div class="kicker">农历八月十五 · 中秋</div>
+  <h1 class="title">中秋快乐</h1>
+  <div class="rule"></div>
+  <p class="poem">但愿人长久，千里共婵娟</p>
+  <p class="sub">苏轼《水调歌头》</p>
+  <p class="bless">愿你所念之人，皆在月下安然；<br>愿你所行之路，皆有<em>清辉</em>相伴。</p>
+</main>
+
+<div class="hud" id="hud">WebGL · <b>GLSL</b> 光线步进<br>月表 <span>FBM</span> 分形 / 实时星场<br><span id="fps">-- FPS</span></div>
+<div class="hint">
+  <kbd>移动</kbd> 视差　<kbd>滚轮</kbd> 缩放　<kbd>点击</kbd> 桂子<br>
+  <kbd>空格</kbd> 云隐　<kbd>H</kbd> 净屏
+</div>
+
+<div class="bar" id="bar">
+  <button type="button" data-act="clouds">云隐</button>
+  <button type="button" data-act="clean">净屏</button>
+  <button type="button" data-act="card">贺卡</button>
+</div>
+
+<div class="ovl" id="share">
+  <div class="share-card">
+    <b>分享给朋友</b>
+    <p>点右上角 <span class="dots">⋯</span> →「发送给朋友」<br>或选择「分享到朋友圈」</p>
+    <button type="button" id="shareOk">知道啦</button>
+  </div>
+</div>
+
+<div class="ovl" id="poster">
+  <div class="poster-in">
+    <img id="posterImg" alt="中秋贺卡">
+    <p>长按图片保存 · 或直接截屏分享</p>
+    <button type="button" class="poster-close" id="posterClose">关 闭</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var glc = document.getElementById("gl");
+  var fxc = document.getElementById("fx");
+  var fctx = fxc.getContext("2d");
+  var hudFps = document.getElementById("fps");
+  var docEl = document.documentElement;
+
+  /* ---------------- 设备与画质档位 ---------------- */
+  var UA = navigator.userAgent || "";
+  var IS_TOUCH = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+  var IS_WECHAT = /MicroMessenger/i.test(UA);
+  var IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(UA);
+  var REDUCED = false;
+  try { REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  var MEM = navigator.deviceMemory || (IS_MOBILE ? 3 : 8);
+  var LOW = IS_MOBILE && MEM <= 2;
+
+  var q = {
+    fbm:   IS_MOBILE ? (LOW ? 3 : 4) : 6,
+    stars: IS_MOBILE ? 2 : 3,
+    dprCap:      IS_MOBILE ? (LOW ? 1.0 : 1.5) : 2,
+    renderScale: IS_MOBILE ? (LOW ? 0.62 : 0.78) : 1.0,
+    fps:   REDUCED ? 20 : (IS_MOBILE ? 40 : 0)
+  };
+
+  var gl = null, isES3 = false;
+  var GL_OPTS = { antialias: false, alpha: false, depth: false, stencil: false,
+                  preserveDrawingBuffer: true, powerPreference: "high-performance" };
+  try { gl = glc.getContext("webgl2", GL_OPTS); if (gl) isES3 = true; } catch (e) { gl = null; }
+  if (!gl) {
+    try { gl = glc.getContext("webgl", GL_OPTS) || glc.getContext("experimental-webgl", GL_OPTS); } catch (e2) { gl = null; }
+  }
+
+  if (!gl) {
+    var fb = document.createElement("div");
+    fb.className = "fallback";
+    document.body.insertBefore(fb, document.body.firstChild);
+    document.getElementById("hud").innerHTML = "WebGL 不可用 · 已切换静态降级渲染";
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  着色器（同一套算法，WebGL2 / WebGL1 双版本）
+   * ------------------------------------------------------------------ */
+  function vertSrc(es3) {
+    return (es3 ? "#version 300 es\nin vec2 aPos;\n" : "attribute vec2 aPos;\n") +
+           "void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }";
+  }
+
+  var FRAG_BODY = [
+    "uniform vec2  uRes;",
+    "uniform float uTime;",
+    "uniform vec2  uMouse;",
+    "uniform float uZoom;",
+    "uniform float uClouds;",
+    "",
+    "float hash21(vec2 p){",
+    "  p = fract(p * vec2(123.34, 345.45));",
+    "  p += dot(p, p + 34.345);",
+    "  return fract(p.x * p.y);",
+    "}",
+    "float hash31(vec3 p){",
+    "  p = fract(p * vec3(0.1031, 0.1030, 0.0973));",
+    "  p += dot(p, p.yxz + 33.33);",
+    "  return fract((p.x + p.y) * p.z);",
+    "}",
+    "float vnoise(vec3 x){",
+    "  vec3 i = floor(x);",
+    "  vec3 f = fract(x);",
+    "  f = f * f * (3.0 - 2.0 * f);",
+    "  float n000 = hash31(i + vec3(0.0, 0.0, 0.0));",
+    "  float n100 = hash31(i + vec3(1.0, 0.0, 0.0));",
+    "  float n010 = hash31(i + vec3(0.0, 1.0, 0.0));",
+    "  float n110 = hash31(i + vec3(1.0, 1.0, 0.0));",
+    "  float n001 = hash31(i + vec3(0.0, 0.0, 1.0));",
+    "  float n101 = hash31(i + vec3(1.0, 0.0, 1.0));",
+    "  float n011 = hash31(i + vec3(0.0, 1.0, 1.0));",
+    "  float n111 = hash31(i + vec3(1.0, 1.0, 1.0));",
+    "  float nx00 = mix(n000, n100, f.x);",
+    "  float nx10 = mix(n010, n110, f.x);",
+    "  float nx01 = mix(n001, n101, f.x);",
+    "  float nx11 = mix(n011, n111, f.x);",
+    "  return mix(mix(nx00, nx10, f.y), mix(nx01, nx11, f.y), f.z);",
+    "}",
+    "float fbm(vec3 p){",
+    "  float a = 0.5, s = 0.0;",
+    "  for (int i = 0; i < __FBMN__; i++){",
+    "    s += a * vnoise(p);",
+    "    p = p * 2.03 + vec3(11.7, 5.3, 7.1);",
+    "    a *= 0.5;",
+    "  }",
+    "  return s;",
+    "}",
+    "vec3 starField(vec3 rd, float t){",
+    "  vec3 col = vec3(0.0);",
+    "  for (int i = 0; i < __STARN__; i++){",
+    "    float fi = float(i);",
+    "    float scale = 95.0 + fi * 130.0;",
+    "    vec3 p  = rd * scale;",
+    "    vec3 ip = floor(p);",
+    "    vec3 fp = fract(p) - 0.5;",
+    "    float h = hash31(ip + fi * 7.13);",
+    "    float thr = 0.958 - fi * 0.012;",
+    "    if (h > thr){",
+    "      float d  = length(fp);",
+    "      float tw = 0.55 + 0.45 * sin(t * (1.6 + h * 5.0) + h * 43.0);",
+    "      float s  = smoothstep(0.46, 0.0, d) * tw;",
+    "      vec3  c  = mix(vec3(0.72, 0.82, 1.0), vec3(1.0, 0.94, 0.78), h);",
+    "      col += s * c * (0.35 + h * 0.9) / (1.0 + fi * 0.85);",
+    "    }",
+    "  }",
+    "  return col;",
+    "}",
+    "",
+    "void main(){",
+    "  vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;",
+    "  vec2 m  = uMouse;",
+    "  float t = uTime;",
+    "",
+    "  float fov  = 1.62;",
+    "  float dist = 3.05 / uZoom;",
+    "  vec3  ro   = vec3(0.0);",
+    "  vec3  rd   = normalize(vec3(uv * fov, -1.0));",
+    "",
+    "  vec3  C = vec3(m.x * 0.24, 0.30 + m.y * 0.16, -dist);",
+    "  float R = 1.0;",
+    "",
+    "  vec3  sky = mix(vec3(0.030, 0.042, 0.092), vec3(0.008, 0.014, 0.042),",
+    "                  clamp(uv.y + 0.5, 0.0, 1.0));",
+    "  sky += starField(rd, t) * (0.85 + 0.15 * sin(t * 0.23));",
+    "  vec3 col = sky;",
+    "",
+    "  vec3  oc = ro - C;",
+    "  float b  = dot(oc, rd);",
+    "  float cc = dot(oc, oc) - R * R;",
+    "  float h  = b * b - cc;",
+    "",
+    "  float term = 0.0;",
+    "  if (h > 0.0){",
+    "    float tt = -b - sqrt(h);",
+    "    if (tt > 0.0){",
+    "      vec3 pos = ro + rd * tt;",
+    "      vec3 n   = normalize(pos - C);",
+    "",
+    "      float mare  = fbm(n * 2.30 + vec3(3.1, 1.7, 0.4));",
+    "      float fine  = fbm(n * 8.50);",
+    "      float crat  = fbm(n * 21.0);",
+    "      float albedo = 0.74;",
+    "      albedo -= smoothstep(0.44, 0.63, mare) * 0.30;",
+    "      albedo += (fine - 0.5) * 0.13;",
+    "      albedo -= smoothstep(0.60, 0.78, crat) * 0.20;",
+    "      albedo  = clamp(albedo, 0.10, 1.0);",
+    "",
+    "      vec3  L  = normalize(vec3(0.92 + m.x * 0.55, 0.74 + m.y * 0.42, 0.62));",
+    "      float nl = max(dot(n, L), 0.0);",
+    "      float df = pow(nl, 0.88);",
+    "      term     = smoothstep(0.0, 0.34, nl);",
+    "",
+    "      vec3 base = vec3(0.94, 0.918, 0.868);",
+    "      col  = base * albedo * (0.055 + 1.42 * df);",
+    "      col += vec3(0.045, 0.062, 0.120) * albedo * (1.0 - df);",
+    "",
+    "      float fres = pow(1.0 - max(dot(n, -rd), 0.0), 3.0);",
+    "      col += vec3(0.52, 0.64, 0.96) * fres * 0.50 * term;",
+    "      col += vec3(1.00, 0.90, 0.70) * fres * 0.30 * df;",
+    "    }",
+    "  }",
+    "",
+    "  float Rscr = R / (fov * dist);",
+    "  float dsc  = length(uv - C.xy);",
+    "  float out_ = max(dsc - Rscr, 0.0);",
+    "  float halo = exp(-out_ * 17.0) * 0.58",
+    "             + exp(-out_ * 3.6) * 0.145 * smoothstep(0.92, 0.02, out_);",
+    "  halo *= 0.84 + 0.16 * sin(t * 0.55);",
+    "  col += vec3(0.44, 0.55, 0.96) * halo;",
+    "  col += vec3(0.95, 0.82, 0.58) * exp(-out_ * 26.0) * 0.40;",
+    "",
+    "  float band = smoothstep(0.58, -0.16, uv.y);",
+    "  float c1 = fbm(vec3(uv * 2.35 + vec2(t * 0.014, t * 0.004), t * 0.020));",
+    "  float c2 = fbm(vec3(uv * 4.70 - vec2(t * 0.022, 0.0), t * 0.031));",
+    "  float cl = smoothstep(0.52, 0.94, c1 * 0.72 + c2 * 0.44) * band;",
+    "  vec3  clc = mix(vec3(0.055, 0.072, 0.135), vec3(0.60, 0.65, 0.82), cl);",
+    "  clc += vec3(0.35, 0.34, 0.30) * exp(-out_ * 9.0);",
+    "  col = mix(col, clc, cl * 0.62 * uClouds);",
+    "",
+    "  col *= 0.52 + 0.48 * smoothstep(1.22, 0.22, length(uv));",
+    "  col  = col / (1.0 + col * 0.42);",
+    "  col  = clamp(col, 0.0, 1.0);",
+    "  col += (hash21(gl_FragCoord.xy) + hash21(gl_FragCoord.xy + 17.0) - 1.0) / 150.0;",
+    "  OUT(vec4(pow(col, vec3(0.4545)), 1.0));",
+    "}"
+  ].join("\n");
+
+  function fragSrc(es3) {
+    var head = es3
+      ? "#version 300 es\nprecision highp float;\nout vec4 outColor;\n#define OUT(c) outColor = c;\n"
+      : "#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\n#define OUT(c) gl_FragColor = c;\n";
+    return head + FRAG_BODY
+      .replace("__FBMN__", String(q.fbm))
+      .replace("__STARN__", String(q.stars));
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  运行时
+   * ------------------------------------------------------------------ */
+  var prog = null, U = {}, quad = null;
+  var state = {
+    t0: performance.now(),
+    mouse: { x: 0, y: 0, tx: 0, ty: 0 },
+    zoom: 1, zoomT: 1,
+    clouds: 1, cloudsT: 1,
+    dpr: 1
+  };
+
+  function compile(type, src) {
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+
+  function build() {
+    var vs = compile(gl.VERTEX_SHADER, vertSrc(isES3));
+    var fs = compile(gl.FRAGMENT_SHADER, fragSrc(isES3));
+    if (!vs || !fs) { gl = null; return false; }
+    prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      console.error(gl.getProgramInfoLog(prog));
+      gl = null; return false;
+    }
+    gl.useProgram(prog);
+    quad = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    var loc = gl.getAttribLocation(prog, "aPos");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    ["uRes", "uTime", "uMouse", "uZoom", "uClouds"].forEach(function (k) {
+      U[k] = gl.getUniformLocation(prog, k);
+    });
+    return true;
+  }
+
+  function resize() {
+    var dpr = Math.min(window.devicePixelRatio || 1, q.dprCap);
+    state.dpr = dpr;
+    var cw = Math.max(2, Math.floor(innerWidth * dpr));
+    var ch = Math.max(2, Math.floor(innerHeight * dpr));
+    var gw = Math.max(2, Math.floor(cw * q.renderScale));
+    var gh = Math.max(2, Math.floor(ch * q.renderScale));
+    if (glc.width !== gw || glc.height !== gh) {
+      glc.width = gw; glc.height = gh;
+      if (gl) gl.viewport(0, 0, gw, gh);
+    }
+    if (fxc.width !== cw || fxc.height !== ch) { fxc.width = cw; fxc.height = ch; }
+    fxc.style.width = innerWidth + "px";
+    fxc.style.height = innerHeight + "px";
+  }
+
+  function renderGL(t) {
+    if (!gl || !prog) return;
+    gl.uniform2f(U.uRes, glc.width, glc.height);
+    gl.uniform1f(U.uTime, t);
+    gl.uniform2f(U.uMouse, state.mouse.x, state.mouse.y);
+    gl.uniform1f(U.uZoom, state.zoom);
+    gl.uniform1f(U.uClouds, state.clouds);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  /* ---------------- 桂花粒子 / 点击光爆 ---------------- */
+  var petals = [], sparks = [];
+  var W = 0, H = 0;
+
+  function petal() {
+    return {
+      x: Math.random() * W,
+      y: H + 20 * state.dpr,
+      r: (1.2 + Math.random() * 2.6) * state.dpr,
+      vy: -(9 + Math.random() * 20) * state.dpr,
+      vx: (Math.random() - 0.5) * 9 * state.dpr,
+      ph: Math.random() * 6.283,
+      sp: 0.5 + Math.random() * 1.5,
+      rot: Math.random() * 6.283,
+      vr: (Math.random() - 0.5) * 1.2,
+      life: 0,
+      max: 11 + Math.random() * 13,
+      hue: 40 + Math.random() * 12
+    };
+  }
+
+  function burst(x, y) {
+    var n = IS_MOBILE ? 52 : 74;
+    for (var i = 0; i < n; i++) {
+      var a = (i / n) * 6.283 + Math.random() * 0.12;
+      var sp = (70 + Math.random() * 210) * state.dpr;
+      sparks.push({
+        x: x, y: y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp * 0.86,
+        r: (0.9 + Math.random() * 2.1) * state.dpr,
+        life: 0,
+        max: 0.75 + Math.random() * 0.85,
+        hue: 34 + Math.random() * 22
+      });
+    }
+    if (sparks.length > 900) sparks.splice(0, sparks.length - 900);
+  }
+
+  function drawFx(dt) {
+    W = fxc.width; H = fxc.height;
+    fctx.clearRect(0, 0, W, H);
+    fctx.globalCompositeOperation = "lighter";
+
+    var cap = IS_MOBILE ? 34 : 46;
+    if (petals.length < cap && Math.random() < 0.55) petals.push(petal());
+
+    for (var i = petals.length - 1; i >= 0; i--) {
+      var p = petals[i];
+      p.life += dt;
+      p.ph += dt * p.sp;
+      p.x += (p.vx + Math.sin(p.ph) * 22 * state.dpr) * dt;
+      p.y += p.vy * dt;
+      p.rot += p.vr * dt;
+      if (p.life > p.max || p.y < -30) { petals.splice(i, 1); continue; }
+      var k = p.life / p.max;
+      var al = Math.sin(Math.min(k, 1) * Math.PI) * 0.85;
+      var g = fctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4.2);
+      g.addColorStop(0, "hsla(" + p.hue + ",92%,74%," + (al * 0.85) + ")");
+      g.addColorStop(0.38, "hsla(" + p.hue + ",88%,58%," + (al * 0.26) + ")");
+      g.addColorStop(1, "hsla(" + p.hue + ",80%,50%,0)");
+      fctx.fillStyle = g;
+      fctx.beginPath();
+      fctx.arc(p.x, p.y, p.r * 4.2, 0, 6.283);
+      fctx.fill();
+      fctx.fillStyle = "hsla(" + (p.hue + 6) + ",96%,88%," + (al * 0.85) + ")";
+      fctx.beginPath();
+      fctx.arc(p.x, p.y, p.r * 0.82, 0, 6.283);
+      fctx.fill();
+    }
+
+    for (var j = sparks.length - 1; j >= 0; j--) {
+      var s = sparks[j];
+      s.life += dt;
+      if (s.life > s.max) { sparks.splice(j, 1); continue; }
+      s.vy += 46 * state.dpr * dt;
+      s.vx *= 0.986; s.vy *= 0.986;
+      s.x += s.vx * dt; s.y += s.vy * dt;
+      var qq = 1 - s.life / s.max;
+      fctx.fillStyle = "hsla(" + s.hue + ",100%," + (62 + qq * 28) + "%," + (qq * qq * 0.95) + ")";
+      fctx.beginPath();
+      fctx.arc(s.x, s.y, s.r * (0.4 + qq), 0, 6.283);
+      fctx.fill();
+    }
+    fctx.globalCompositeOperation = "source-over";
+  }
+
+  /* ---------------- 主循环 ---------------- */
+  var last = performance.now(), lastDraw = 0, running = true;
+  var fpsAcc = 0, fpsN = 0, fpsT = 0;
+
+  function frame(now) {
+    if (!running) return;
+    var minGap = q.fps ? (1000 / q.fps - 0.6) : 0;
+    if (minGap && now - lastDraw < minGap) { requestAnimationFrame(frame); return; }
+
+    var dt = Math.min((now - last) / 1000, 0.05);
+    last = now; lastDraw = now;
+    var t = (now - state.t0) / 1000;
+
+    state.mouse.x += (state.mouse.tx - state.mouse.x) * Math.min(1, dt * 3.4);
+    state.mouse.y += (state.mouse.ty - state.mouse.y) * Math.min(1, dt * 3.4);
+    state.zoom += (state.zoomT - state.zoom) * Math.min(1, dt * 4.5);
+    state.clouds += (state.cloudsT - state.clouds) * Math.min(1, dt * 2.2);
+
+    resize();
+    renderGL(t);
+    drawFx(dt);
+
+    fpsAcc += dt; fpsN++;
+    if (now - fpsT > 500) {
+      fpsT = now;
+      if (hudFps) hudFps.textContent = Math.round(fpsN / Math.max(fpsAcc, 1e-3)) + " FPS";
+      fpsAcc = 0; fpsN = 0;
+    }
+    requestAnimationFrame(frame);
+  }
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) { running = false; }
+    else if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
+  });
+
+  /* ---------------- 交互 ---------------- */
+  window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", function () {
+    setTimeout(function () { resize(); W = fxc.width; H = fxc.height; }, 260);
+  });
+
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function applyZoom(f) { state.zoomT = clamp(state.zoomT * f, 0.62, 1.95); }
+
+  /* 桌面：鼠标 / 滚轮 / 键盘 */
+  window.addEventListener("mousemove", function (e) {
+    state.mouse.tx = clamp((e.clientX / innerWidth) * 2 - 1, -1.4, 1.4);
+    state.mouse.ty = clamp(-((e.clientY / innerHeight) * 2 - 1), -1.4, 1.4);
+  });
+  window.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    applyZoom(1 - (e.deltaY || 0) * 0.0012);
+  }, { passive: false });
+  window.addEventListener("keydown", function (e) {
+    if (e.code === "Space") { e.preventDefault(); toggleClouds(); }
+    else if (e.key === "h" || e.key === "H") { docEl.ownerDocument.body.classList.toggle("clean"); }
+  });
+
+  /* 移动端 / 微信：单指视差、双指缩放、轻点桂子、双击云隐 */
+  var drag = null, pinch = null, lastTap = 0;
+
+  function twoDist(t) {
+    var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  window.addEventListener("touchstart", function (e) {
+    if (e.touches.length === 2) {
+      pinch = twoDist(e.touches); drag = null;
+    } else if (e.touches.length === 1) {
+      pinch = null;
+      var t = e.touches[0];
+      drag = { x: t.clientX, y: t.clientY, tx: state.mouse.tx, ty: state.mouse.ty, time: performance.now() };
+    }
+  }, { passive: true });
+
+  window.addEventListener("touchmove", function (e) {
+    if (e.touches.length === 2 && pinch) {
+      e.preventDefault();
+      var d = twoDist(e.touches);
+      if (d > 0) { applyZoom(d / pinch); pinch = d; }
+    } else if (e.touches.length === 1 && drag) {
+      var t = e.touches[0];
+      state.mouse.tx = clamp(drag.tx + (t.clientX - drag.x) / innerWidth * 2, -1.4, 1.4);
+      state.mouse.ty = clamp(drag.ty - (t.clientY - drag.y) / innerHeight * 2, -1.4, 1.4);
+    }
+  }, { passive: false });
+
+  window.addEventListener("touchend", function (e) {
+    if (e.touches.length < 2) pinch = null;
+    if (drag && e.changedTouches && e.changedTouches.length) {
+      var t = e.changedTouches[0];
+      var dx = t.clientX - drag.x, dy = t.clientY - drag.y;
+      var moved = Math.sqrt(dx * dx + dy * dy);
+      if (moved < 14 && performance.now() - drag.time < 320) {
+        var now = performance.now();
+        if (now - lastTap < 300) { lastTap = 0; toggleClouds(); }
+        else { lastTap = now; burst(t.clientX * state.dpr, t.clientY * state.dpr); }
+      }
+    }
+    if (e.touches.length === 0) drag = null;
+  }, { passive: true });
+
+  /* ---------------- 控制条 ---------------- */
+  function toggleClouds() { state.cloudsT = state.cloudsT > 0.5 ? 0 : 1; }
+
+  document.getElementById("bar").addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    var act = b.getAttribute("data-act");
+    if (act === "clouds") toggleClouds();
+    else if (act === "clean") document.body.classList.toggle("clean");
+    else if (act === "card") openPoster();
+  });
+
+  /* ---------------- 贺卡生成（长按保存 / 截屏分享） ---------------- */
+  var posterOvl = document.getElementById("poster");
+  var posterImg = document.getElementById("posterImg");
+
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  }
+
+  function makePoster() {
+    var PW = 1080, PH = 1440;
+    var c = document.createElement("canvas");
+    c.width = PW; c.height = PH;
+    var g = c.getContext("2d");
+
+    g.fillStyle = "#04060d";
+    g.fillRect(0, 0, PW, PH);
+
+    if (gl && prog) {
+      var ow = glc.width, oh = glc.height;
+      try {
+        glc.width = PW; glc.height = PH;
+        gl.viewport(0, 0, PW, PH);
+        renderGL((performance.now() - state.t0) / 1000);
+        g.drawImage(glc, 0, 0, PW, PH);
+      } catch (err) {}
+      glc.width = ow; glc.height = oh;
+      gl.viewport(0, 0, ow, oh);
+    } else {
+      var rgr = g.createRadialGradient(PW * 0.5, PH * 0.34, 0, PW * 0.5, PH * 0.34, PW * 0.62);
+      rgr.addColorStop(0, "#f6efdc"); rgr.addColorStop(0.24, "#e8dcc0");
+      rgr.addColorStop(0.25, "#8b93a8"); rgr.addColorStop(0.5, "#20263c");
+      rgr.addColorStop(0.8, "#070a14");
+      g.fillStyle = rgr; g.fillRect(0, 0, PW, PH);
+    }
+
+    var vg = g.createRadialGradient(PW / 2, PH * 0.4, PH * 0.16, PW / 2, PH * 0.4, PW * 0.9);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(0,0,0,0.6)");
+    g.fillStyle = vg; g.fillRect(0, 0, PW, PH);
+
+    var bg = g.createLinearGradient(0, PH * 0.5, 0, PH);
+    bg.addColorStop(0, "rgba(3,5,11,0)");
+    bg.addColorStop(1, "rgba(3,5,11,0.94)");
+    g.fillStyle = bg; g.fillRect(0, PH * 0.5, PW, PH * 0.5);
+
+    g.strokeStyle = "rgba(255,220,160,0.28)";
+    g.lineWidth = 2;
+    roundRect(g, 34, 34, PW - 68, PH - 68, 26);
+    g.stroke();
+
+    g.textAlign = "center";
+    g.textBaseline = "alphabetic";
+
+    g.fillStyle = "#9fb0d4";
+    g.font = '500 30px "Songti SC","STSong","Noto Serif SC",serif';
+    g.fillText("农 历 八 月 十 五 · 中 秋", PW / 2, PH * 0.635);
+
+    var tg = g.createLinearGradient(PW * 0.1, 0, PW * 0.9, 0);
+    tg.addColorStop(0, "#fff9e8"); tg.addColorStop(0.2, "#ffe6a4");
+    tg.addColorStop(0.5, "#fffdf6"); tg.addColorStop(0.78, "#f0cc82");
+    tg.addColorStop(1, "#fff4d2");
+    g.fillStyle = tg;
+    g.shadowColor = "rgba(255,206,132,0.6)";
+    g.shadowBlur = 64;
+    g.font = '600 152px "Songti SC","STSong","Noto Serif SC",serif';
+    g.fillText("中秋快乐", PW / 2, PH * 0.74);
+    g.shadowBlur = 0;
+
+    g.strokeStyle = "rgba(255,220,160,0.5)";
+    g.lineWidth = 2;
+    g.beginPath(); g.moveTo(PW * 0.3, PH * 0.782); g.lineTo(PW * 0.7, PH * 0.782); g.stroke();
+
+    g.fillStyle = "#f4ecdb";
+    g.font = '400 54px "Songti SC","STSong","Noto Serif SC",serif';
+    g.fillText("但愿人长久，千里共婵娟", PW / 2, PH * 0.845);
+
+    g.fillStyle = "#8b9cbf";
+    g.font = '400 28px "Songti SC","STSong","Noto Serif SC",serif';
+    g.fillText("苏 轼 《 水 调 歌 头 》", PW / 2, PH * 0.88);
+
+    g.fillStyle = "#c3cee6";
+    g.font = '400 34px "Songti SC","STSong","Noto Serif SC",serif';
+    g.fillText("愿你所念之人，皆在月下安然；", PW / 2, PH * 0.93);
+    g.fillText("愿你所行之路，皆有清辉相伴。", PW / 2, PH * 0.962);
+
+    return c;
+  }
+
+  function openPoster() {
+    if (!posterImg) return;
+    var c;
+    try { c = makePoster(); } catch (e) { return; }
+    var url = "";
+    try { url = c.toDataURL("image/jpeg", 0.92); }
+    catch (e2) { try { url = c.toDataURL("image/png"); } catch (e3) { url = ""; } }
+    if (!url) return;
+    posterImg.src = url;
+    posterOvl.classList.add("on");
+  }
+  function closePoster() { posterOvl.classList.remove("on"); }
+  document.getElementById("posterClose").addEventListener("click", closePoster);
+  posterOvl.addEventListener("click", function (e) { if (e.target === posterOvl) closePoster(); });
+
+  /* ---------------- 微信分享引导（仅微信内首次） ---------------- */
+  var shareOvl = document.getElementById("share");
+  try {
+    if (IS_WECHAT && IS_TOUCH && !localStorage.getItem("moon_share_seen")) {
+      setTimeout(function () { shareOvl.classList.add("on"); }, 1600);
+    }
+  } catch (e) {}
+  document.getElementById("shareOk").addEventListener("click", function () {
+    shareOvl.classList.remove("on");
+    try { localStorage.setItem("moon_share_seen", "1"); } catch (e) {}
+  });
+
+  /* ---------------- 启动 ---------------- */
+  if (gl && !build()) {
+    gl = null;
+    var fb2 = document.createElement("div");
+    fb2.className = "fallback";
+    document.body.insertBefore(fb2, document.body.firstChild);
+    document.getElementById("hud").innerHTML = "WebGL 着色器不可用 · 已切换静态降级渲染";
+  }
+  resize();
+  W = fxc.width; H = fxc.height;
+  for (var i = 0; i < (IS_MOBILE ? 14 : 22); i++) {
+    var p = petal();
+    p.y = Math.random() * H;
+    p.life = Math.random() * p.max * 0.8;
+    petals.push(p);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

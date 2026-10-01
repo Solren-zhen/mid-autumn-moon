@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>中秋快乐 · 月华</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#03050b}
+  body{
+    font-family:"Songti SC","STSong","SimSun","Noto Serif SC","Source Han Serif SC",serif;
+    color:#e9edf8;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #fx{pointer-events:none}
+
+  main{
+    position:fixed;inset:0;z-index:3;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+    padding:0 6vw 7.5vh;text-align:center;
+  }
+  .kicker{
+    font-size:clamp(11px,1.15vw,14px);letter-spacing:.62em;text-indent:.62em;
+    color:#9fb0d4;opacity:0;animation:rise 1.5s .25s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .kicker::before,.kicker::after{content:"";display:inline-block;width:clamp(22px,4vw,58px);height:1px;
+    vertical-align:middle;margin:0 .9em;
+    background:linear-gradient(90deg,transparent,rgba(180,200,240,.65));}
+  .kicker::after{background:linear-gradient(90deg,rgba(180,200,240,.65),transparent)}
+
+  .title{
+    margin:.34em 0 .1em;font-weight:600;
+    font-size:clamp(46px,9.4vw,110px);letter-spacing:.2em;text-indent:.2em;line-height:1.12;
+    background:linear-gradient(100deg,#fff9e8 0%,#ffe6a4 16%,#fffdf6 30%,#f0cc82 46%,
+      #fff4d2 62%,#d6a75c 80%,#fff9e8 100%);
+    background-size:230% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 16px rgba(255,226,164,.34)) drop-shadow(0 0 62px rgba(255,198,120,.20));
+    opacity:0;animation:rise 1.9s .45s cubic-bezier(.2,.7,.2,1) both,sheen 11s 2s linear infinite;
+  }
+  .rule{
+    width:0;height:1px;margin:1.05em 0 1.15em;
+    background:linear-gradient(90deg,transparent,rgba(255,220,160,.55),transparent);
+    animation:draw 1.6s .95s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .poem{
+    font-size:clamp(16px,2.15vw,26px);letter-spacing:.24em;text-indent:.24em;color:#f4ecdb;
+    text-shadow:0 0 22px rgba(255,214,150,.30);opacity:0;
+    animation:rise 1.5s 1.15s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .sub{
+    margin-top:.85em;font-size:clamp(10.5px,1.05vw,13px);letter-spacing:.42em;text-indent:.42em;
+    color:#8b9cbf;opacity:0;animation:rise 1.5s 1.45s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .bless{
+    margin-top:2.1em;font-size:clamp(12.5px,1.32vw,15.5px);line-height:2.15;letter-spacing:.2em;
+    color:#c3cee6;opacity:0;animation:rise 1.7s 1.75s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .bless em{font-style:normal;color:#f7dfa9;text-shadow:0 0 16px rgba(255,210,140,.4)}
+
+  .hud,.hint{
+    position:fixed;bottom:22px;z-index:4;font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;
+    font-size:11px;letter-spacing:.06em;color:rgba(160,180,215,.62);line-height:1.75;
+    opacity:0;animation:fade 1.4s 2.4s ease both;transition:opacity .45s ease;
+  }
+  .hud{left:24px}
+  .hint{right:24px;text-align:right}
+  .hud b{color:rgba(240,220,175,.85);font-weight:600}
+  .hud span{color:rgba(210,180,120,.9)}
+  body.clean .hud,body.clean .hint{opacity:0 !important;animation:none}
+  .hint kbd{
+    font:inherit;padding:1px 5px;border:1px solid rgba(160,180,215,.28);border-radius:4px;
+    background:rgba(160,180,215,.06);color:rgba(210,220,245,.8)
+  }
+
+  @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes draw{from{width:0}to{width:min(46vw,420px)}}
+  @keyframes sheen{from{background-position:0% 0}to{background-position:230% 0}}
+
+  .fallback{
+    position:fixed;inset:0;z-index:0;
+    background:
+      radial-gradient(circle at 50% 30%,#f6efdc 0%,#e8dcc0 22%,#8b93a8 23%,#20263c 46%,#070a14 74%),
+      #04060d;
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="fx"></canvas>
+
+<main>
+  <div class="kicker">农历八月十五 · 中秋</div>
+  <h1 class="title">中秋快乐</h1>
+  <div class="rule"></div>
+  <p class="poem">但愿人长久，千里共婵娟</p>
+  <p class="sub">苏轼《水调歌头》</p>
+  <p class="bless">愿你所念之人，皆在月下安然；<br>愿你所行之路，皆有<em>清辉</em>相伴。</p>
+</main>
+
+<div class="hud" id="hud">WebGL2 · <b>GLSL</b> 光线步进<br>月表 <span>FBM</span> 分形 / 实时星场<br><span id="fps">-- FPS</span></div>
+<div class="hint">
+  <kbd>移动</kbd> 视差　<kbd>滚轮</kbd> 缩放<br>
+  <kbd>点击</kbd> 桂子　<kbd>空格</kbd> 云隐　<kbd>H</kbd> 净屏
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var glc = document.getElementById("gl");
+  var fxc = document.getElementById("fx");
+  var fctx = fxc.getContext("2d");
+  var hudFps = document.getElementById("fps");
+
+  var gl = null;
+  try { gl = glc.getContext("webgl2", { antialias: false, alpha: false, preserveDrawingBuffer: true, powerPreference: "high-performance" }); }
+  catch (e) { gl = null; }
+
+  if (!gl) {
+    var fb = document.createElement("div");
+    fb.className = "fallback";
+    document.body.insertBefore(fb, document.body.firstChild);
+    document.getElementById("hud").innerHTML = "WebGL2 不可用 · 已切换静态降级渲染";
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  着色器
+   * ------------------------------------------------------------------ */
+  var VERT = [
+    "#version 300 es",
+    "in vec2 aPos;",
+    "void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }"
+  ].join("\n");
+
+  var FRAG = [
+    "#version 300 es",
+    "precision highp float;",
+    "out vec4 outColor;",
+    "",
+    "uniform vec2  uRes;",
+    "uniform float uTime;",
+    "uniform vec2  uMouse;",
+    "uniform float uZoom;",
+    "uniform float uClouds;",
+    "",
+    "float hash21(vec2 p){",
+    "  p = fract(p * vec2(123.34, 345.45));",
+    "  p += dot(p, p + 34.345);",
+    "  return fract(p.x * p.y);",
+    "}",
+    "float hash31(vec3 p){",
+    "  p = fract(p * vec3(0.1031, 0.1030, 0.0973));",
+    "  p += dot(p, p.yxz + 33.33);",
+    "  return fract((p.x + p.y) * p.z);",
+    "}",
+    "float vnoise(vec3 x){",
+    "  vec3 i = floor(x);",
+    "  vec3 f = fract(x);",
+    "  f = f * f * (3.0 - 2.0 * f);",
+    "  float n000 = hash31(i + vec3(0.0, 0.0, 0.0));",
+    "  float n100 = hash31(i + vec3(1.0, 0.0, 0.0));",
+    "  float n010 = hash31(i + vec3(0.0, 1.0, 0.0));",
+    "  float n110 = hash31(i + vec3(1.0, 1.0, 0.0));",
+    "  float n001 = hash31(i + vec3(0.0, 0.0, 1.0));",
+    "  float n101 = hash31(i + vec3(1.0, 0.0, 1.0));",
+    "  float n011 = hash31(i + vec3(0.0, 1.0, 1.0));",
+    "  float n111 = hash31(i + vec3(1.0, 1.0, 1.0));",
+    "  float nx00 = mix(n000, n100, f.x);",
+    "  float nx10 = mix(n010, n110, f.x);",
+    "  float nx01 = mix(n001, n101, f.x);",
+    "  float nx11 = mix(n011, n111, f.x);",
+    "  return mix(mix(nx00, nx10, f.y), mix(nx01, nx11, f.y), f.z);",
+    "}",
+    "float fbm(vec3 p){",
+    "  float a = 0.5, s = 0.0;",
+    "  for (int i = 0; i < 6; i++){",
+    "    s += a * vnoise(p);",
+    "    p = p * 2.03 + vec3(11.7, 5.3, 7.1);",
+    "    a *= 0.5;",
+    "  }",
+    "  return s;",
+    "}",
+    "vec3 starField(vec3 rd, float t){",
+    "  vec3 col = vec3(0.0);",
+    "  for (int i = 0; i < 3; i++){",
+    "    float fi = float(i);",
+    "    float scale = 95.0 + fi * 130.0;",
+    "    vec3 p  = rd * scale;",
+    "    vec3 ip = floor(p);",
+    "    vec3 fp = fract(p) - 0.5;",
+    "    float h = hash31(ip + fi * 7.13);",
+    "    float thr = 0.958 - fi * 0.012;",
+    "    if (h > thr){",
+    "      float d  = length(fp);",
+    "      float tw = 0.55 + 0.45 * sin(t * (1.6 + h * 5.0) + h * 43.0);",
+    "      float s  = smoothstep(0.46, 0.0, d) * tw;",
+    "      vec3  c  = mix(vec3(0.72, 0.82, 1.0), vec3(1.0, 0.94, 0.78), h);",
+    "      col += s * c * (0.35 + h * 0.9) / (1.0 + fi * 0.85);",
+    "    }",
+    "  }",
+    "  return col;",
+    "}",
+    "",
+    "void main(){",
+    "  vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;",
+    "  vec2 m  = uMouse;",
+    "  float t = uTime;",
+    "",
+    "  float fov  = 1.62;",
+    "  float dist = 3.05 / uZoom;",
+    "  vec3  ro   = vec3(0.0);",
+    "  vec3  rd   = normalize(vec3(uv * fov, -1.0));",
+    "",
+    "  vec3  C = vec3(m.x * 0.24, 0.30 + m.y * 0.16, -dist);",
+    "  float R = 1.0;",
+    "",
+    "  vec3  sky = mix(vec3(0.030, 0.042, 0.092), vec3(0.008, 0.014, 0.042),",
+    "                  clamp(uv.y + 0.5, 0.0, 1.0));",
+    "  sky += starField(rd, t) * (0.85 + 0.15 * sin(t * 0.23));",
+    "  vec3 col = sky;",
+    "",
+    "  vec3  oc = ro - C;",
+    "  float b  = dot(oc, rd);",
+    "  float cc = dot(oc, oc) - R * R;",
+    "  float h  = b * b - cc;",
+    "",
+    "  float term = 0.0;",
+    "  if (h > 0.0){",
+    "    float tt = -b - sqrt(h);",
+    "    if (tt > 0.0){",
+    "      vec3 pos = ro + rd * tt;",
+    "      vec3 n   = normalize(pos - C);",
+    "",
+    "      float mare  = fbm(n * 2.30 + vec3(3.1, 1.7, 0.4));",
+    "      float fine  = fbm(n * 8.50);",
+    "      float crat  = fbm(n * 21.0);",
+    "      float albedo = 0.74;",
+    "      albedo -= smoothstep(0.44, 0.63, mare) * 0.30;",
+    "      albedo += (fine - 0.5) * 0.13;",
+    "      albedo -= smoothstep(0.60, 0.78, crat) * 0.20;",
+    "      albedo  = clamp(albedo, 0.10, 1.0);",
+    "",
+    "      vec3  L  = normalize(vec3(0.92 + m.x * 0.55, 0.74 + m.y * 0.42, 0.62));",
+    "      float nl = max(dot(n, L), 0.0);",
+    "      float df = pow(nl, 0.88);",
+    "      term     = smoothstep(0.0, 0.34, nl);",
+    "",
+    "      vec3 base = vec3(0.94, 0.918, 0.868);",
+    "      col  = base * albedo * (0.055 + 1.42 * df);",
+    "      col += vec3(0.045, 0.062, 0.120) * albedo * (1.0 - df);",
+    "",
+    "      float fres = pow(1.0 - max(dot(n, -rd), 0.0), 3.0);",
+    "      col += vec3(0.52, 0.64, 0.96) * fres * 0.50 * term;",
+    "      col += vec3(1.00, 0.90, 0.70) * fres * 0.30 * df;",
+    "    }",
+    "  }",
+    "",
+    "  float Rscr = R / (fov * dist);",
+    "  float dsc  = length(uv - C.xy);",
+    "  float out_ = max(dsc - Rscr, 0.0);",
+    "  float halo = exp(-out_ * 17.0) * 0.58",
+    "             + exp(-out_ * 3.6) * 0.145 * smoothstep(0.92, 0.02, out_);",
+    "  halo *= 0.84 + 0.16 * sin(t * 0.55);",
+    "  col += vec3(0.44, 0.55, 0.96) * halo;",
+    "  col += vec3(0.95, 0.82, 0.58) * exp(-out_ * 26.0) * 0.40;",
+    "",
+    "  float band = smoothstep(0.58, -0.16, uv.y);",
+    "  float c1 = fbm(vec3(uv * 2.35 + vec2(t * 0.014, t * 0.004), t * 0.020));",
+    "  float c2 = fbm(vec3(uv * 4.70 - vec2(t * 0.022, 0.0), t * 0.031));",
+    "  float cl = smoothstep(0.52, 0.94, c1 * 0.72 + c2 * 0.44) * band;",
+    "  vec3  clc = mix(vec3(0.055, 0.072, 0.135), vec3(0.60, 0.65, 0.82), cl);",
+    "  clc += vec3(0.35, 0.34, 0.30) * exp(-out_ * 9.0);",
+    "  col = mix(col, clc, cl * 0.62 * uClouds);",
+    "",
+    "  col *= 0.52 + 0.48 * smoothstep(1.22, 0.22, length(uv));",
+    "  col  = col / (1.0 + col * 0.42);",
+    "  col  = clamp(col, 0.0, 1.0);",
+    "  col += (hash21(gl_FragCoord.xy) + hash21(gl_FragCoord.xy + 17.0) - 1.0) / 150.0;",
+    "  outColor = vec4(pow(col, vec3(0.4545)), 1.0);",
+    "}"
+  ].join("\n");
+
+  /* ------------------------------------------------------------------ *
+   *  运行时
+   * ------------------------------------------------------------------ */
+  var prog = null, U = {}, quad = null;
+  var state = {
+    t0: performance.now(),
+    mouse: { x: 0, y: 0, tx: 0, ty: 0 },
+    zoom: 1, zoomT: 1,
+    clouds: 1, cloudsT: 1,
+    dpr: 1
+  };
+
+  function compile(type, src) {
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(s), src);
+      return null;
+    }
+    return s;
+  }
+
+  function build() {
+    var vs = compile(gl.VERTEX_SHADER, VERT);
+    var fs = compile(gl.FRAGMENT_SHADER, FRAG);
+    if (!vs || !fs) { gl = null; return false; }
+    prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      console.error(gl.getProgramInfoLog(prog));
+      gl = null; return false;
+    }
+    gl.useProgram(prog);
+    quad = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    var loc = gl.getAttribLocation(prog, "aPos");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    ["uRes", "uTime", "uMouse", "uZoom", "uClouds"].forEach(function (k) {
+      U[k] = gl.getUniformLocation(prog, k);
+    });
+    return true;
+  }
+
+  function resize() {
+    state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.floor(innerWidth * state.dpr);
+    var h = Math.floor(innerHeight * state.dpr);
+    if (glc.width !== w || glc.height !== h) {
+      glc.width = w; glc.height = h;
+      fxc.width = w; fxc.height = h;
+      if (gl) gl.viewport(0, 0, w, h);
+    }
+    fxc.style.width = innerWidth + "px";
+    fxc.style.height = innerHeight + "px";
+  }
+
+  /* ---------------- 桂花粒子 / 点击光爆 ---------------- */
+  var petals = [], sparks = [];
+  var W = 0, H = 0;
+
+  function petal() {
+    return {
+      x: Math.random() * W,
+      y: H + 20 * state.dpr,
+      r: (1.2 + Math.random() * 2.6) * state.dpr,
+      vy: -(9 + Math.random() * 20) * state.dpr,
+      vx: (Math.random() - 0.5) * 9 * state.dpr,
+      ph: Math.random() * 6.283,
+      sp: 0.5 + Math.random() * 1.5,
+      rot: Math.random() * 6.283,
+      vr: (Math.random() - 0.5) * 1.2,
+      life: 0,
+      max: 11 + Math.random() * 13,
+      hue: 40 + Math.random() * 12
+    };
+  }
+
+  function burst(x, y) {
+    var n = 74;
+    for (var i = 0; i < n; i++) {
+      var a = (i / n) * 6.283 + Math.random() * 0.12;
+      var sp = (70 + Math.random() * 210) * state.dpr;
+      sparks.push({
+        x: x, y: y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp * 0.86,
+        r: (0.9 + Math.random() * 2.1) * state.dpr,
+        life: 0,
+        max: 0.75 + Math.random() * 0.85,
+        hue: 34 + Math.random() * 22
+      });
+    }
+  }
+
+  function drawFx(dt) {
+    W = fxc.width; H = fxc.height;
+    fctx.clearRect(0, 0, W, H);
+    fctx.globalCompositeOperation = "lighter";
+
+    if (petals.length < 46 && Math.random() < 0.55) petals.push(petal());
+
+    for (var i = petals.length - 1; i >= 0; i--) {
+      var p = petals[i];
+      p.life += dt;
+      p.ph += dt * p.sp;
+      p.x += (p.vx + Math.sin(p.ph) * 22 * state.dpr) * dt;
+      p.y += p.vy * dt;
+      p.rot += p.vr * dt;
+      if (p.life > p.max || p.y < -30) { petals.splice(i, 1); continue; }
+      var k = p.life / p.max;
+      var al = Math.sin(Math.min(k, 1) * Math.PI) * 0.85;
+      var g = fctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4.2);
+      g.addColorStop(0, "hsla(" + p.hue + ",92%,74%," + (al * 0.85) + ")");
+      g.addColorStop(0.38, "hsla(" + p.hue + ",88%,58%," + (al * 0.26) + ")");
+      g.addColorStop(1, "hsla(" + p.hue + ",80%,50%,0)");
+      fctx.fillStyle = g;
+      fctx.beginPath();
+      fctx.arc(p.x, p.y, p.r * 4.2, 0, 6.283);
+      fctx.fill();
+      fctx.fillStyle = "hsla(" + (p.hue + 6) + ",96%,88%," + (al * 0.85) + ")";
+      fctx.beginPath();
+      fctx.arc(p.x, p.y, p.r * 0.82, 0, 6.283);
+      fctx.fill();
+    }
+
+    for (var j = sparks.length - 1; j >= 0; j--) {
+      var s = sparks[j];
+      s.life += dt;
+      if (s.life > s.max) { sparks.splice(j, 1); continue; }
+      s.vy += 46 * state.dpr * dt;
+      s.vx *= 0.986; s.vy *= 0.986;
+      s.x += s.vx * dt; s.y += s.vy * dt;
+      var q = 1 - s.life / s.max;
+      fctx.fillStyle = "hsla(" + s.hue + ",100%," + (62 + q * 28) + "%," + (q * q * 0.95) + ")";
+      fctx.beginPath();
+      fctx.arc(s.x, s.y, s.r * (0.4 + q), 0, 6.283);
+      fctx.fill();
+    }
+    fctx.globalCompositeOperation = "source-over";
+  }
+
+  /* ---------------- 主循环 ---------------- */
+  var last = performance.now(), fpsAcc = 0, fpsN = 0, fpsT = 0;
+
+  function frame(now) {
+    var dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    var t = (now - state.t0) / 1000;
+
+    state.mouse.x += (state.mouse.tx - state.mouse.x) * Math.min(1, dt * 3.4);
+    state.mouse.y += (state.mouse.ty - state.mouse.y) * Math.min(1, dt * 3.4);
+    state.zoom += (state.zoomT - state.zoom) * Math.min(1, dt * 4.5);
+    state.clouds += (state.cloudsT - state.clouds) * Math.min(1, dt * 2.2);
+
+    resize();
+
+    if (gl && prog) {
+      gl.uniform2f(U.uRes, glc.width, glc.height);
+      gl.uniform1f(U.uTime, t);
+      gl.uniform2f(U.uMouse, state.mouse.x, state.mouse.y);
+      gl.uniform1f(U.uZoom, state.zoom);
+      gl.uniform1f(U.uClouds, state.clouds);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    drawFx(dt);
+
+    fpsAcc += dt; fpsN++;
+    if (now - fpsT > 500) {
+      fpsT = now;
+      if (hudFps) hudFps.textContent = Math.round(fpsN / Math.max(fpsAcc, 1e-3)) + " FPS";
+      fpsAcc = 0; fpsN = 0;
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------------- 交互 ---------------- */
+  window.addEventListener("resize", resize);
+
+  window.addEventListener("pointermove", function (e) {
+    state.mouse.tx = (e.clientX / innerWidth) * 2 - 1;
+    state.mouse.ty = -((e.clientY / innerHeight) * 2 - 1);
+  });
+
+  window.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    state.zoomT = Math.max(0.62, Math.min(1.95, state.zoomT * (1 - e.deltaY * 0.0012)));
+  }, { passive: false });
+
+  window.addEventListener("pointerdown", function (e) {
+    burst(e.clientX * state.dpr, e.clientY * state.dpr);
+  });
+
+  window.addEventListener("keydown", function (e) {
+    if (e.code === "Space") {
+      e.preventDefault();
+      state.cloudsT = state.cloudsT > 0.5 ? 0 : 1;
+    } else if (e.key === "h" || e.key === "H") {
+      document.body.classList.toggle("clean");
+    }
+  });
+
+  /* ---------------- 启动 ---------------- */
+  if (gl) {
+    if (!build()) {
+      var fb = document.createElement("div");
+      fb.className = "fallback";
+      document.body.insertBefore(fb, document.body.firstChild);
+    }
+  }
+  resize();
+  W = fxc.width; H = fxc.height;
+  for (var i = 0; i < 22; i++) {
+    var p = petal();
+    p.y = Math.random() * H;
+    p.life = Math.random() * p.max * 0.8;
+    petals.push(p);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
